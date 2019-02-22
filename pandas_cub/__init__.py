@@ -3,9 +3,6 @@ import numpy as np
 __version__ = '0.0.1'
 
 
-DTYPE_NAME = {'O': 'string', 'i': 'int', 'f': 'float', 'b': 'bool'}
-
-
 class DataFrame:
 
     def __init__(self, data):
@@ -15,7 +12,7 @@ class DataFrame:
 
         Parameters
         ----------
-        values: dict
+        data: dict
             A dictionary of strings mapped to NumPy arrays. The key will
             become the column name.
         """
@@ -55,7 +52,7 @@ class DataFrame:
     @property
     def columns(self):
         """
-        _values holds column names mapped to arrays
+        _data holds column names mapped to arrays
         take advantage of internal ordering of dictionaries to
         put columns in correct order in list. Only works in 3.6+
 
@@ -90,98 +87,46 @@ class DataFrame:
         """
         pass
 
-    # def _repr_html_(self):
-    #     """
-    #     Used to create a string of HTML to nicely display the DataFrame
-    #     in a Jupyter Notebook. Different string formatting is used for
-    #     different data types.
-    #
-    #     The structure of the HTML is as follows:
-    #     <table>
-    #         <thead>
-    #             <tr>
-    #                 <th>data</th>
-    #                 ...
-    #                 <th>data</th>
-    #             </tr>
-    #         </thead>
-    #         <tbody>
-    #             <tr>
-    #                 <td><strong>{i}</strong></td>
-    #                 <td>data</td>
-    #                 ...
-    #                 <td>data</td>
-    #             </tr>
-    #             ...
-    #             <tr>
-    #                 <td><strong>{i}</strong></td>
-    #                 <td>data</td>
-    #                 ...
-    #                 <td>data</td>
-    #             </tr>
-    #         </tbody>
-    #     <table>
-    #     """
-    #     html = '<table><thead><tr><th></th>'
-    #     for col in self.columns:
-    #         html += f"<th>{col:10}</th>"
-    #
-    #     html += '</tr></thead>'
-    #     html += "<tbody>"
-    #
-    #     only_head = False
-    #     num_head = 10
-    #     num_tail = 10
-    #     if len(self) <= 20:
-    #         only_head = True
-    #         num_head = len(self)
-    #
-    #     for i in range(num_head):
-    #         html += f'<tr><td><strong>{i}</strong></td>'
-    #         for j, (col, values) in enumerate(self._values.items()):
-    #             if self._column_info[col] == 'f':
-    #                 html += f'<td>{values[i]:10.3f}</td>'
-    #             elif self._column_info[col] == 'b':
-    #                 html += f'<td>{values[i]}</td>'
-    #             elif self._column_info[col] == 'O':
-    #                 v = values[i]
-    #                 if v is None:
-    #                     v = 'None'
-    #                 html += f'<td>{v:10}</td>'
-    #             else:
-    #                 html += f'<td>{values[i]:10}</td>'
-    #         html += '</tr>'
-    #
-    #     if not only_head:
-    #         html += '<tr><strong><td>...</td></strong>'
-    #         for i in range(len(self.columns)):
-    #             html += '<td>...</td>'
-    #         html += '</tr>'
-    #         for i in range(-num_tail, 0):
-    #             html += f'<tr><td><strong>{len(self) + i}</strong></td>'
-    #             for j, (col, values) in enumerate(self._values.items()):
-    #                 if self._column_info[col] == 'f':
-    #                     html += f'<td>{values[i]:10.3f}</td>'
-    #                 elif self._column_info[col] == 'b':
-    #                     html += f'<td>{values[i]}</td>'
-    #                 elif self._column_info[col] == 'O':
-    #                     v = values[i]
-    #                     if v is None:
-    #                         v = 'None'
-    #                     html += f'<td>{v:10}</td>'
-    #                 else:
-    #                     html += f'<td>{values[i]:10}</td>'
-    #             html += '</tr>'
-    #
-    #         html += '</tbody></table>'
-    #     return html
+    def _repr_html_(self):
+        """
+        Used to create a string of HTML to nicely display the DataFrame
+        in a Jupyter Notebook. Different string formatting is used for
+        different data types.
+
+        The structure of the HTML is as follows:
+        <table>
+            <thead>
+                <tr>
+                    <th>data</th>
+                    ...
+                    <th>data</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>{i}</strong></td>
+                    <td>data</td>
+                    ...
+                    <td>data</td>
+                </tr>
+                ...
+                <tr>
+                    <td><strong>{i}</strong></td>
+                    <td>data</td>
+                    ...
+                    <td>data</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        pass
 
     @property
     def values(self):
         """
         Returns
         -------
-        A single 2D NumPy array (or 1D if 1 column) of the underlying data
+        A single 2D NumPy array of the underlying data
         """
         pass
 
@@ -190,9 +135,10 @@ class DataFrame:
         """
         Returns
         -------
-        A two-column DataFrame of column names in a column and
+        A two-column DataFrame of column names in one column and
         their data type in the other
         """
+        DTYPE_NAME = {'O': 'string', 'i': 'int', 'f': 'float', 'b': 'bool'}
         pass
 
     def __getitem__(self, item):
@@ -209,6 +155,10 @@ class DataFrame:
         -------
         A subset of the original DataFrame
         """
+        pass
+
+    def _getitem_tuple(self, item):
+        # simultaneous selection of rows and cols -> df[rs, cs]
         pass
 
     def _ipython_key_completions_(self):
@@ -477,8 +427,7 @@ class DataFrame:
     def diff(self, n=1):
         """
         Take the difference between the current value and
-        the nth value below it. The top n rows of the DataFrame
-        are not returned
+        the nth value above it.
 
         Parameters
         ----------
@@ -488,13 +437,14 @@ class DataFrame:
         -------
         A DataFrame
         """
-        pass
+        def func():
+            pass
+        return self._non_agg(func)
 
-    def pct_change(self, n):
+    def pct_change(self, n=1):
         """
         Take the percentage difference between the current value and
-        the nth value below it. The top n rows of the DataFrame
-        are not returned
+        the nth value above it.
 
         Parameters
         ----------
@@ -504,7 +454,9 @@ class DataFrame:
         -------
         A DataFrame
         """
-        pass
+        def func():
+            pass
+        return self._non_agg(func)
 
     #### Arithmetic and Comparison Operators ####
 
@@ -604,6 +556,8 @@ class DataFrame:
             Proportion of the data to sample
         replace: bool
             Whether or not to sample with replacement
+        seed: int
+            Seeds the random number generator
 
         Returns
         -------
@@ -724,6 +678,9 @@ class StringMethods:
     def title(self, col):
         return self._str_method(str.title, col)
 
+    def lower(self, col):
+        return self._str_method(str.lower, col)
+
     def upper(self, col):
         return self._str_method(str.upper, col)
 
@@ -740,6 +697,10 @@ class StringMethods:
 def read_csv(fn):
     """
     Read in a comma-separated value file as a DataFrame
+
+    Parameters
+    ----------
+    fn: string of file location
 
     Returns
     -------

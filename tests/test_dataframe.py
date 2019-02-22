@@ -41,7 +41,7 @@ class TestDataFrameCreation:
                            'b': np.array([1])})
         # correct construction. no error                           
         pdc.DataFrame({'a': np.array([1, 2]), 
-                           'b': np.array([5, 10])})
+                        'b': np.array([5, 10])})
 
     def test_unicode_to_object(self):
         a_object = a.astype('O')
@@ -238,6 +238,17 @@ class TestSelection:
         with pytest.raises(TypeError):
             df['a'] = set()
 
+    def test_head_tail(self):
+        df_result = df.head(2)
+        df_answer = pdc.DataFrame({'a': a[:2], 'b': b[:2], 'c': c[:2],
+                                   'd': d[:2], 'e': e[:2]})
+        assert_df_equals(df_result, df_answer)
+
+        df_result = df.tail(2)
+        df_answer = pdc.DataFrame({'a': a[-2:], 'b': b[-2:], 'c': c[-2:],
+                                   'd':d[-2:], 'e': e[-2:]})
+        assert_df_equals(df_result, df_answer)
+
 
 a1 = np.array(['a', 'b', 'c'])
 b1 = np.array([11, 5, 8])
@@ -250,16 +261,8 @@ c2 = np.array([False, True])
 df2 = pdc.DataFrame({'a': a2, 'b': b2, 'c': c2})
 
 
-class TestBasics:
+class TestAggregation:
 
-    def test_head_tail(self):
-        df_result = df1.head(2)
-        df_answer = pdc.DataFrame({'a': a1[:2], 'b': b1[:2], 'c': c1[:2]})
-        assert_df_equals(df_result, df_answer)
-
-        df_result = df1.tail(2)
-        df_answer = pdc.DataFrame({'a': a1[-2:], 'b': b1[-2:], 'c': c1[-2:]})
-        assert_df_equals(df_result, df_answer)
 
     def test_min(self):
         df_result = df1.min()
@@ -607,9 +610,6 @@ class TestGrouping:
         df_answer = pdc.DataFrame({'fruit': np.array(['a', 'b'], dtype=object),
                                    'count': np.array([5, 3])})
         assert_df_equals(df_results[1], df_answer)
-
-        with pytest.raises(TypeError):
-            df_temp.rename(5)
 
     def test_value_counts_normalize(self):
         df_temp = pdc.DataFrame({'state': np.array(['texas', 'texas', 'texas', 'florida', 'florida', 'florida', 'florida', 'ohio']),

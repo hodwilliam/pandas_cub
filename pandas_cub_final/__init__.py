@@ -3,9 +3,6 @@ import numpy as np
 __version__ = '0.0.1'
 
 
-DTYPE_NAME = {'O': 'string', 'i': 'int', 'f': 'float', 'b': 'bool'}
-
-
 class DataFrame:
 
     def __init__(self, data):
@@ -15,7 +12,7 @@ class DataFrame:
 
         Parameters
         ----------
-        values: dict
+        data: dict
             A dictionary of strings mapped to NumPy arrays. The key will
             become the column name.
         """
@@ -151,7 +148,7 @@ class DataFrame:
                     <td>data</td>
                 </tr>
             </tbody>
-        <table>
+        </table>
         """
         html = '<table><thead><tr><th></th>'
         for col in self.columns:
@@ -206,7 +203,7 @@ class DataFrame:
                         html += f'<td>{values[i]:10}</td>'
                 html += '</tr>'
 
-            html += '</tbody></table>'
+        html += '</tbody></table>'
         return html
 
     @property
@@ -223,9 +220,10 @@ class DataFrame:
         """
         Returns
         -------
-        A two-column DataFrame of column names in a column and
+        A two-column DataFrame of column names in one column and
         their data type in the other
         """
+        DTYPE_NAME = {'O': 'string', 'i': 'int', 'f': 'float', 'b': 'bool'}
         col_arr = np.array(self.columns)
         dtypes = []
         for values in self._data.values():
@@ -326,7 +324,6 @@ class DataFrame:
         for col in col_selection:
             new_data[col] = self._data[col][row_selection]
         return DataFrame(new_data)
-
 
     def _ipython_key_completions_(self):
         # allows for tab completion when doing df['c
@@ -501,14 +498,9 @@ class DataFrame:
         -------
         A DataFrame
         """
-        dfs = self.unique()
-        if isinstance(dfs, DataFrame):
-            dfs = [dfs]
-
         new_data = {}
-        for df, col in zip(dfs, self.columns):
-            new_data[col] = np.array([len(df)])
-
+        for col, value in self._data.items():
+            new_data[col] = np.array([len(np.unique(value))])
         return DataFrame(new_data)
 
     def value_counts(self, normalize=False):
@@ -676,18 +668,17 @@ class DataFrame:
         """
         new_data = {}
         for col, values in self._data.items():
-            try:
-                val = func(values, **kwargs)
-            except TypeError:
-                continue
-            new_data[col] = val
+            if values.dtype.kind in 'bif':
+                values = func(values, **kwargs)
+            else:
+                values = values.copy()
+            new_data[col] = values
         return DataFrame(new_data)
 
     def diff(self, n=1):
         """
         Take the difference between the current value and
-        the nth value below it. The top n rows of the DataFrame
-        are not returned
+        the nth value above it.
 
         Parameters
         ----------
@@ -697,25 +688,21 @@ class DataFrame:
         -------
         A DataFrame
         """
-        new_data = {}
-        for col, values in self._data.items():
-            try:
-                val = values - np.roll(values, n)
-                val = val.astype('float')
-                if n >= 0:
-                    val[:n] = np.NAN
-                else:
-                    val[n:] = np.NAN
-            except TypeError:
-                continue
-            new_data[col] = val
-        return DataFrame(new_data)
+        def func(values):
+            values_shifted = np.roll(values, n)
+            values = values - values_shifted
+            values = values.astype('float')
+            if n >= 0:
+                values[:n] = np.NAN
+            else:
+                values[n:] = np.NAN
+            return values
+        return self._non_agg(func)
 
-    def pct_change(self, n):
+    def pct_change(self, n=1):
         """
         Take the percentage difference between the current value and
-        the nth value below it. The top n rows of the DataFrame
-        are not returned
+        the nth value above it.
 
         Parameters
         ----------
@@ -725,15 +712,16 @@ class DataFrame:
         -------
         A DataFrame
         """
-        df = self.diff(n)
-        new_data = {}
-        for col, values in df._data.items():
-            try:
-                val = values / np.roll(self._data[col], n)
-            except TypeError:
-                continue
-            new_data[col] = val
-        return DataFrame(new_data)
+        def func(values):
+            values = values.astype('float')
+            values_shifted = np.roll(values, n)
+            values = values - values_shifted
+            if n >= 0:
+                values[:n] = np.NAN
+            else:
+                values[n:] = np.NAN
+            return values / values_shifted
+        return self._non_agg(func)
 
     #### Arithmetic and Comparison Operators ####
 
@@ -851,6 +839,8 @@ class DataFrame:
             Proportion of the data to sample
         replace: bool
             Whether or not to sample with replacement
+        seed: int
+            Seeds the random number generator
 
         Returns
         -------
@@ -897,6 +887,8 @@ class DataFrame:
             if aggfunc is None:
                 aggfunc = 'size'
                 val_data = np.empty(len(self))
+            else:
+                raise ValueError('You cannot provide `aggfunc` when `values` is None')
 
         if rows is not None:
             row_data = self._data[rows]
@@ -1083,18 +1075,22 @@ def read_csv(fn):
     """
     Read in a comma-separated value file as a DataFrame
 
+    Parameters
+    ----------
+    fn: string of file location
+
     Returns
     -------
     A DataFrame
     """
-    values = {}
+    from collections import defaultdict
+    values = defaultdict(list)
     with open(fn) as f:
         header = f.readline()
         column_names = header.strip('\n').split(',')
-        for name in column_names:
-            values[name] = []
-        for line in f.readlines():
-            for val, name in zip(line.strip('\n').split(','), column_names):
+        for line in f:
+            vals = line.strip('\n').split(',')
+            for val, name in zip(vals, column_names):
                 values[name].append(val)
     new_data = {}
     for col, vals in values.items():
